@@ -1,9 +1,10 @@
 ## Jk8s
 
-Este projeto é um exemplo de utilização da biblioteca io.kubernetes em Java para conexão e interação com um cluster Kubernetes.
+Este projeto é um exemplo de utilização da biblioteca io.kubernetes em Java para conexão e interação com um cluster Kubernetes usando a biblioteca io.kubernetes java-client usando um crud simples em spring boot.
 
 ## Funcionalidades
 
+* Criação do cluster EKS via Terraform
 * Autenticação no cluster Kubernetes
 * Listagem de namespaces
 
@@ -11,18 +12,63 @@ Este projeto é um exemplo de utilização da biblioteca io.kubernetes em Java p
 
 * Java 8 ou superior
 * Cluster Kubernetes
+* Kubectl
 
-## Instalação
+## Como usar
 
 1. Clone o repositório para sua máquina local
 2. Importe o projeto em sua IDE Java preferida
 3. Adicione a biblioteca io.kubernetes ao classpath do projeto
 4. Configure as credenciais de acesso ao cluster no arquivo application.properties
 
-## Como usar
+## Criando o cluster EKS
 
-Após seguir as instruções de instalação, execute a classe ConnectCluster para obter a lista de namespaces do cluster.
+Para rodar a receita Terraform que acabamos de criar, basta executar o comando abaixo:
 
-## Licença
+```bash
+terraform init
+```
 
-Este projeto está licenciado sob a licença MIT. Consulte o arquivo LICENSE para obter mais informações
+Uma maneira de você validar o código é através do comando `Terraform validate`. Ele vai verificar se o código está correto ou não. Para executar o comando `Terraform validate`, basta executar o comando abaixo:
+
+```bash
+terraform validate
+```
+
+Considerando que a versão do Terraform pode ter sido atualizada, talvez seja interessante também que você formate o código acima em um novo padrão do Terraform. Para isso, basta executar o comando abaixo:
+
+```bash
+terraform fmt
+```
+
+O comando `terraform init` é responsável por inicializar o Terraform. Ele baixa os plugins necessários para executar o Terraform e também baixa os módulos que estão sendo utilizados. Após a execução do comando terraform init, vamos executar o comando terraform plan para verificar se a receita está correta:
+
+```bash
+terraform plan -out plan
+```
+
+O comando `terraform plan -out plan` é responsável por verificar se a receita está correta. Ele vai verificar se os recursos que estão sendo criados já existem ou não. Após a execução do comando `terraform plan`, vamos executar o comando `terraform apply` para criar os recursos:
+
+```bash
+terraform apply -auto-approve
+```
+
+O comando `terraform apply -auto-approve` é responsável por criar os recursos. Após a execução do comando terraform apply. Um ponto importante aqui é no uso do parametro `-auto-approve`. Esse parâmetro é importante para que o Terraform não fique esperando a confirmação do usuário para criar os recursos. Mas, ao mesmo tempo, deve ser evitado o uso desse parâmetro em ambientes de produção. Depois do cluster criado, precisamos dar update no kubeconfig para que o kubectl consiga se comunicar com o cluster. Para isso, vamos executar o comando abaixo:
+
+```bash
+aws eks --region us-east-1 update-kubeconfig --name eks-cluster
+```
+
+E agora você já pode executar o comando `kubectl get nodes` para verificar se os nós foram criados:
+
+```bash
+kubectl get nodes
+```
+
+Para destruir o cluster criado acima, basta executar o comando abaixo:
+
+```bash
+terraform destroy -auto-approve
+```
+
+
