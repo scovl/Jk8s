@@ -17,31 +17,23 @@ Este projeto é um exemplo de utilização da biblioteca io.kubernetes em Java p
 ## Como usar
 
 1. Clone o repositório para sua máquina local
-2. Importe o projeto em sua IDE Java preferida
-3. Adicione a biblioteca io.kubernetes ao classpath do projeto
-4. Configure as credenciais de acesso ao cluster no arquivo application.properties
+2. Abra o projeto em sua IDE Java preferida (recomendo Intellij IDEA Community)
+3. Configure as credenciais de acesso ao cluster no arquivo application.properties
 
 ## Criando o cluster EKS
 
-Para rodar a receita Terraform que acabamos de criar, basta executar o comando abaixo:
+Observe que na pasta do projeto existe um diretório chamado Infra. Nele contém uma receita Terraform com a função de criar o cluster EKS. Para rodar a receita, basta entrar no diretório e executar os comandos abaixo:
 
 ```bash
 terraform init
 ```
 
-Uma maneira de você validar o código é através do comando `Terraform validate`. Ele vai verificar se o código está correto ou não. Para executar o comando `Terraform validate`, basta executar o comando abaixo:
+O comando `terraform init` é responsável por inicializar o Terraform. Ele baixa os plugins necessários para executar o Terraform e também baixa os módulos que estão sendo utilizados. Uma maneira de você validar o código é através do comando `Terraform validate`. Ele vai verificar se o código está correto ou não. Para executar o comando `Terraform validate`, basta executar o comando abaixo:
 
 ```bash
 terraform validate
 ```
-
-Considerando que a versão do Terraform pode ter sido atualizada, talvez seja interessante também que você formate o código acima em um novo padrão do Terraform. Para isso, basta executar o comando abaixo:
-
-```bash
-terraform fmt
-```
-
-O comando `terraform init` é responsável por inicializar o Terraform. Ele baixa os plugins necessários para executar o Terraform e também baixa os módulos que estão sendo utilizados. Após a execução do comando terraform init, vamos executar o comando terraform plan para verificar se a receita está correta:
+ Após a execução do comando terraform init, vamos executar o comando terraform plan para verificar se a receita está correta:
 
 ```bash
 terraform plan -out plan
