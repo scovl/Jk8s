@@ -9,6 +9,7 @@ import com.amazonaws.services.securitytoken.AWSSecurityTokenService;
 import com.amazonaws.services.securitytoken.AWSSecurityTokenServiceClientBuilder;
 import com.amazonaws.services.securitytoken.model.AssumeRoleRequest;
 import com.amazonaws.services.securitytoken.model.GetCallerIdentityRequest;
+import com.amazonaws.services.securitytoken.model.GetCallerIdentityResult;
 import io.kubernetes.client.openapi.ApiClient;
 import io.kubernetes.client.openapi.Configuration;
 import io.kubernetes.client.openapi.models.V1ObjectMeta;
@@ -50,22 +51,22 @@ public class KubernetesAuth {
         Configuration.setDefaultApiClient(apiClient);
     }
 
-
     private Cluster getClusterInfo(String clusterName) {
         DescribeClusterRequest describeClusterRequest = new DescribeClusterRequest().withName(clusterName);
-        Cluster cluster = eksClient.describeCluster(describeClusterRequest).getCluster();
-        return cluster;
+        return eksClient.describeCluster(describeClusterRequest).getCluster();
     }
 
     private V1ObjectMeta getCallerIdentity(String sessionName, Cluster cluster) {
         V1ObjectMeta callerIdentity = new V1ObjectMeta();
         callerIdentity.putAnnotationsItem("eks.amazonaws.com/role-arn", cluster.getArn().replace("eks", "sts").concat("/system:masters"));
-        callerIdentity.setName(stsClient.getCallerIdentity(new GetCallerIdentityRequest()).getArn());
-        callerIdentity.setUid(stsClient.getCallerIdentity(new GetCallerIdentityRequest()).getUserId());
-        callerIdentity.setNamespace(stsClient.getCallerIdentity(new GetCallerIdentityRequest()).getAccount());
+
+        GetCallerIdentityResult callerIdentityResult = stsClient.getCallerIdentity(new GetCallerIdentityRequest());
+        callerIdentity.setName(callerIdentityResult.getArn());
+        callerIdentity.setUid(callerIdentityResult.getUserId());
+        callerIdentity.setNamespace(callerIdentityResult.getAccount());
+
         return callerIdentity;
     }
-
 
     private Credentials assumeRoleAndGetCredentials(Cluster cluster, String callerIdentityName) {
         AssumeRoleRequest assumeRoleRequest = new AssumeRoleRequest()
