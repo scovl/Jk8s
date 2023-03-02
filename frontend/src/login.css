@@ -5,7 +5,7 @@
 }
 
 body {
-  background: linear-gradient(to bottom right, #9c00c8, #0800ffad);
+  background: linear-gradient(to bottom right, #007dc8, #bb00ffad);
   background-repeat: no-repeat;
   height: 100vh;
 }
@@ -38,9 +38,6 @@ h1 {
 }
 
 .form-control {
-  border: none;
-  border-bottom: 2px solid #333;
-  border-radius: 0;
   padding: 10px;
   font-size: 18px;
   width: 100%;
@@ -48,13 +45,14 @@ h1 {
 }
 
 .btn {
-  background-color: #333;
+  background: linear-gradient(to bottom right, #007dc8, #bb00ffad);
   border: none;
   color: #fff;
   padding: 10px 20px;
   font-size: 18px;
   border-radius: 5px;
   cursor: pointer;
+  width: 100%;
 }
 
 .form-container {
@@ -62,9 +60,9 @@ h1 {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  max-width: 500px;
+  max-width: 350px;
   width: 100%;
   padding: 40px;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.7);
+  background: rgb(255, 255, 255);
 }
