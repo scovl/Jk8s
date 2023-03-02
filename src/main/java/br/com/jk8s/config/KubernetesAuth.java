@@ -1,42 +1,80 @@
 package br.com.jk8s.config;
 
-import br.com.jk8s.dto.AuthDTO;
+import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
+import com.amazonaws.services.eks.AmazonEKS;
+import com.amazonaws.services.eks.AmazonEKSClientBuilder;
+import com.amazonaws.services.eks.model.Cluster;
+import com.amazonaws.services.eks.model.DescribeClusterRequest;
+import com.amazonaws.services.securitytoken.AWSSecurityTokenService;
+import com.amazonaws.services.securitytoken.AWSSecurityTokenServiceClientBuilder;
+import com.amazonaws.services.securitytoken.model.AssumeRoleRequest;
+import com.amazonaws.services.securitytoken.model.GetCallerIdentityRequest;
 import io.kubernetes.client.openapi.ApiClient;
-import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.Configuration;
-import io.kubernetes.client.openapi.apis.AuthenticationV1Api;
-import io.kubernetes.client.openapi.models.V1TokenReview;
-import io.kubernetes.client.openapi.models.V1TokenReviewSpec;
+import io.kubernetes.client.openapi.models.V1ObjectMeta;
+import io.kubernetes.client.util.Config;
+
+import java.io.ByteArrayInputStream;
 
 public class KubernetesAuth {
 
-    private final AuthDTO authDTO;
+    private AmazonEKS eksClient;
+    private AWSSecurityTokenService stsClient;
+    private V1ObjectMeta callerIdentity;
 
-    public KubernetesAuth(AuthDTO authDTO) {
-        this.authDTO = authDTO;
+    public KubernetesAuth(String region, String clusterName, String sessionName) {
+        this.eksClient = AmazonEKSClientBuilder.standard()
+                .withCredentials(DefaultAWSCredentialsProviderChain.getInstance())
+                .withRegion(region)
+                .build();
+
+        Cluster cluster = getClusterInfo(clusterName);
+
+        this.stsClient = AWSSecurityTokenServiceClientBuilder.standard()
+                .withCredentials(DefaultAWSCredentialsProviderChain.getInstance())
+                .withRegion(region)
+                .build();
+
+        this.callerIdentity = getCallerIdentity(sessionName, cluster);
     }
 
-    public ApiClient authenticate() throws ApiException {
-        // Obtém uma instância do cliente API
-        ApiClient client = Configuration.getDefaultApiClient();
+    public void configureKubernetesAccess() throws Exception {
+        Cluster cluster = getClusterInfo("");
 
-        // Configuração do token de autenticação
-        V1TokenReview tokenReview = new V1TokenReview();
-        V1TokenReviewSpec spec = new V1TokenReviewSpec();
+        Credentials credentials = assumeRoleAndGetCredentials(cluster, this.callerIdentity.getName());
 
-        // Define o token de autenticação a ser utilizado
-        spec.token(authDTO.getToken());
-        tokenReview.spec(spec);
+        ApiClient apiClient = Config.fromCluster();
+        apiClient.setApiKeyPrefix("Bearer");
+        apiClient.setAccessToken(credentials.getAccessKeyId() + ":" + credentials.getSecretAccessKey() + ":" + credentials.getSessionToken());
+        apiClient.setSslCaCert(new ByteArrayInputStream(cluster.getCertificateAuthority().getData().getBytes()));
+        Configuration.setDefaultApiClient(apiClient);
+    }
 
-        // Cria uma instância da API de autenticação
-        AuthenticationV1Api api = new AuthenticationV1Api(client);
 
-        // Realiza a revisão do token
-        V1TokenReview result = api.createTokenReview(tokenReview, null, null, null, null);
+    private Cluster getClusterInfo(String clusterName) {
+        DescribeClusterRequest describeClusterRequest = new DescribeClusterRequest().withName(clusterName);
+        Cluster cluster = eksClient.describeCluster(describeClusterRequest).getCluster();
+        return cluster;
+    }
 
-        // Aqui você pode tratar o resultado do token review, como acessar o token retornado pelo Kubernetes
+    private V1ObjectMeta getCallerIdentity(String sessionName, Cluster cluster) {
+        V1ObjectMeta callerIdentity = new V1ObjectMeta();
+        callerIdentity.putAnnotationsItem("eks.amazonaws.com/role-arn", cluster.getArn().replace("eks", "sts").concat("/system:masters"));
+        callerIdentity.setName(stsClient.getCallerIdentity(new GetCallerIdentityRequest()).getArn());
+        callerIdentity.setUid(stsClient.getCallerIdentity(new GetCallerIdentityRequest()).getUserId());
+        callerIdentity.setNamespace(stsClient.getCallerIdentity(new GetCallerIdentityRequest()).getAccount());
+        return callerIdentity;
+    }
 
-        // Retorna o cliente API autenticado
-        return client;
+
+    private Credentials assumeRoleAndGetCredentials(Cluster cluster, String callerIdentityName) {
+        AssumeRoleRequest assumeRoleRequest = new AssumeRoleRequest()
+                .withRoleArn(cluster.getArn().replace("eks", "sts").concat("/system:masters"))
+                .withRoleSessionName(callerIdentityName);
+        com.amazonaws.services.securitytoken.model.Credentials credentials = stsClient.assumeRole(assumeRoleRequest).getCredentials();
+        String accessKeyId = credentials.getAccessKeyId();
+        String secretAccessKey = credentials.getSecretAccessKey();
+        String sessionToken = credentials.getSessionToken();
+        return new Credentials(accessKeyId, secretAccessKey, sessionToken);
     }
 }
